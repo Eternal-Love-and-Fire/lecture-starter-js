@@ -29,7 +29,7 @@ function createFighter(fighter, selectFighter) {
 }
 
 export default function createFighters(fighters) {
-    const selectFighter = createFightersSelector();
+    const selectFighter = createFightersSelector(createElement);
     const container = createElement({ tagName: 'div', className: 'fighters___root' });
     const preview = createElement({ tagName: 'div', className: 'preview-container___root' });
     const fightersList = createElement({ tagName: 'div', className: 'fighters___list' });

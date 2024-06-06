@@ -1,11 +1,17 @@
-import createElement from '../helpers/domHelper';
 import renderArena from './arena';
 import versusImg from '../../../resources/versus.png';
 import { createFighterPreview } from './fighterPreview';
+import fighterService from '../services/fightersService';
+import createElement from '../helpers/domHelper';
 
 const fighterDetailsMap = new Map();
 
 export async function getFighterInfo(fighterId) {
+    if (!fighterDetailsMap.has(fighterId)) {
+        const info = await fighterService.getFighterDetails(fighterId);
+        fighterDetailsMap.set(fighterId, info);
+    }
+    return fighterDetailsMap.get(fighterId);
     // get fighter info from fighterDetailsMap or from service and write it to fighterDetailsMap
 }
 

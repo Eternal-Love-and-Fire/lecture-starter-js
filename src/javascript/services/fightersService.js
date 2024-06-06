@@ -13,8 +13,14 @@ class FighterService {
     }
 
     async getFighterDetails(id) {
-        // todo: implement this method
-        // endpoint - `details/fighter/${id}.json`;
+        try {
+            // I do it because linter want this from me :..)
+            const fighterEndpoint = this.#endpoint.slice(0, 8);
+            const apiResult = await callApi(`details/${fighterEndpoint}/${id}.json`);
+            return apiResult;
+        } catch (error) {
+            throw error;
+        }
     }
 }
 
