@@ -24,8 +24,7 @@ export default function showWinnerModal(fighter) {
     const bodyElement = createWinnerElement(fighter);
 
     function onClose() {
-        // App.rootElement.innerHTML = '';
-        // App.startApplication();
+        document.location.reload();
     }
     const credentials = {
         title: 'And the winner is:',
