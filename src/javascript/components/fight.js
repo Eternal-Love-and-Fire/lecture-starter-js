@@ -1,149 +1,125 @@
-import controls from '../../constants/controls';
+import Fighter from '../models/Fighter';
 
-export function getHitPower(attack) {
-    const criticalHitChance = Math.random() + 1;
-    const power = attack * criticalHitChance;
-    return power;
-}
-
-export function getBlockPower(defense) {
-    const dodgeChance = Math.random() + 1;
-    const power = defense * dodgeChance;
-    return power;
-}
-
-export function getDamage({ attack }, { defense }) {
-    const hit = getHitPower(attack);
-    const block = getBlockPower(defense);
-    const damage = hit - block;
-    return damage > 0 ? damage : 0;
-}
-
-export async function fight(firstFighter, secondFighter) {
-    const leftFighterIndicator = document.getElementById('left-fighter-indicator');
-    const rightFighterIndicator = document.getElementById('right-fighter-indicator');
-    const fightInfo = {
-        firstFighter: {
-            ...firstFighter,
-            inAttack: false,
-            inDodge: false,
-            healthbar: 100,
-            lastCriticalHitTime: 0
-        },
-        secondFighter: {
-            ...secondFighter,
-            inAttack: false,
-            inDodge: false,
-            healthbar: 100,
-            lastCriticalHitTime: 0
-        },
-        winner: undefined
+class FightingManager {
+    static controls = {
+        PlayerOneAttack: 'KeyA',
+        PlayerOneBlock: 'KeyD',
+        PlayerTwoAttack: 'KeyJ',
+        PlayerTwoBlock: 'KeyL',
+        PlayerOneCriticalHitCombination: ['KeyQ', 'KeyW', 'KeyE'],
+        PlayerTwoCriticalHitCombination: ['KeyU', 'KeyI', 'KeyO']
     };
 
-    const criticalHitDelay = 10000;
+    constructor(firstFighter, secondFighter) {
+        this.firstFighter = new Fighter(firstFighter, 'left');
+        this.secondFighter = new Fighter(secondFighter, 'right');
+        this.criticalHitDelay = 10000;
+        this.keysPressed = new Set();
 
-    function checkCriticalHitCombination(keys, criticalHitCombination) {
-        return criticalHitCombination.every(key => keys.includes(key));
+        this.runGame = this.runGame.bind(this);
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.handleKeyUp = this.handleKeyUp.bind(this);
     }
 
-    return new Promise(resolve => {
-        const keysPressed = new Set();
+    async fight() {
+        return new Promise(resolve => {
+            document.addEventListener('keydown', this.runGame.bind(this));
+            document.addEventListener('keyup', this.runGame.bind(this));
+            FightingManager.leftFighterIndicator = document.getElementById('left-fighter-indicator');
+            FightingManager.rightFighterIndicator = document.getElementById('right-fighter-indicator');
+            this.resolveFight = resolve;
+        });
+    }
 
-        function handleKeyDown({ code }) {
-            keysPressed.add(code);
-
-            const now = Date.now();
-
-            if (
-                code === controls.PlayerOneAttack &&
-                !fightInfo.firstFighter.inDodge &&
-                !fightInfo.secondFighter.inDodge
-            ) {
-                const damage = getDamage(fightInfo.firstFighter, fightInfo.secondFighter);
-                fightInfo.secondFighter.health -= damage;
-                fightInfo.secondFighter.healthbar -= (100 / secondFighter.health) * damage;
-                rightFighterIndicator.style.width = `${fightInfo.secondFighter.healthbar}%`;
-                fightInfo.firstFighter.inAttack = true;
-            }
-
-            if (
-                code === controls.PlayerTwoAttack &&
-                !fightInfo.secondFighter.inDodge &&
-                !fightInfo.firstFighter.inDodge
-            ) {
-                const damage = getDamage(fightInfo.secondFighter, fightInfo.firstFighter);
-                fightInfo.firstFighter.health -= damage;
-                fightInfo.firstFighter.healthbar -= (100 / firstFighter.health) * damage;
-                leftFighterIndicator.style.width = `${fightInfo.firstFighter.healthbar}%`;
-                fightInfo.secondFighter.inAttack = true;
-            }
-
-            if (code === controls.PlayerOneBlock && !fightInfo.firstFighter.inAttack) {
-                fightInfo.firstFighter.inDodge = true;
-            }
-
-            if (code === controls.PlayerTwoBlock && !fightInfo.secondFighter.inAttack) {
-                fightInfo.secondFighter.inDodge = true;
-            }
-
-            if (
-                checkCriticalHitCombination(Array.from(keysPressed), controls.PlayerOneCriticalHitCombination) &&
-                now - fightInfo.firstFighter.lastCriticalHitTime > criticalHitDelay
-            ) {
-                const damage = 2 * fightInfo.firstFighter.attack;
-                fightInfo.secondFighter.health -= damage;
-                fightInfo.secondFighter.healthbar -= (100 / secondFighter.health) * damage;
-                rightFighterIndicator.style.width = `${fightInfo.secondFighter.healthbar}%`;
-                fightInfo.firstFighter.lastCriticalHitTime = now;
-            }
-
-            if (
-                checkCriticalHitCombination(Array.from(keysPressed), controls.PlayerTwoCriticalHitCombination) &&
-                now - fightInfo.secondFighter.lastCriticalHitTime > criticalHitDelay
-            ) {
-                const damage = 2 * fightInfo.secondFighter.attack;
-                fightInfo.firstFighter.health -= damage;
-                fightInfo.firstFighter.healthbar -= (100 / firstFighter.health) * damage;
-                leftFighterIndicator.style.width = `${fightInfo.firstFighter.healthbar}%`;
-                fightInfo.secondFighter.lastCriticalHitTime = now;
-            }
+    handleKeyDown(event) {
+        const { code } = event;
+        this.keysPressed.add(code);
+        const now = Date.now();
+        if (
+            code === FightingManager.controls.PlayerOneAttack &&
+            !this.firstFighter.inDodge &&
+            !this.secondFighter.inDodge
+        ) {
+            const damage = this.firstFighter.getDamage(this.secondFighter);
+            FightingManager.rightFighterIndicator.style.width = `${this.secondFighter.applyDamage(damage)}%`;
+            this.firstFighter.inAttack = true;
         }
 
-        function handleKeyUp({ code }) {
-            keysPressed.delete(code);
-
-            if (code === controls.PlayerOneAttack) {
-                fightInfo.firstFighter.inAttack = false;
-            }
-            if (code === controls.PlayerTwoAttack) {
-                fightInfo.secondFighter.inAttack = false;
-            }
-            if (code === controls.PlayerOneBlock) {
-                fightInfo.firstFighter.inDodge = false;
-            }
-            if (code === controls.PlayerTwoBlock) {
-                fightInfo.secondFighter.inDodge = false;
-            }
+        if (
+            code === FightingManager.controls.PlayerTwoAttack &&
+            !this.secondFighter.inDodge &&
+            !this.firstFighter.inDodge
+        ) {
+            const damage = this.secondFighter.getDamage(this.firstFighter);
+            FightingManager.leftFighterIndicator.style.width = `${this.firstFighter.applyDamage(damage)}%`;
+            this.secondFighter.inAttack = true;
         }
 
-        function checkForWinner() {
-            if (fightInfo.firstFighter.health <= 0) {
-                document.removeEventListener('keydown', handleKeyDown);
-                document.removeEventListener('keyup', handleKeyUp);
-                resolve(secondFighter);
-            }
-            if (fightInfo.secondFighter.health <= 0) {
-                document.removeEventListener('keydown', handleKeyDown);
-                document.removeEventListener('keyup', handleKeyUp);
-                resolve(firstFighter);
-            }
+        if (code === FightingManager.controls.PlayerOneBlock && !this.firstFighter.inAttack) {
+            this.firstFighter.inDodge = true;
         }
-        function runGame(event) {
-            if (event.type === 'keyup') handleKeyUp(event);
-            if (event.type === 'keydown') handleKeyDown(event);
-            checkForWinner();
+
+        if (code === FightingManager.controls.PlayerTwoBlock && !this.secondFighter.inAttack) {
+            this.secondFighter.inDodge = true;
         }
-        document.addEventListener('keydown', runGame);
-        document.addEventListener('keyup', runGame);
-    });
+
+        if (
+            Fighter.checkCriticalHitCombination(
+                Array.from(this.keysPressed),
+                FightingManager.controls.PlayerOneCriticalHitCombination
+            ) &&
+            now - this.firstFighter.lastCriticalHitTime > this.criticalHitDelay
+        ) {
+            const damage = 2 * this.firstFighter.attack;
+            FightingManager.rightFighterIndicator.style.width = `${this.secondFighter.applyDamage(damage)}%`;
+            this.firstFighter.lastCriticalHitTime = now;
+        }
+
+        if (
+            Fighter.checkCriticalHitCombination(
+                Array.from(this.keysPressed),
+                FightingManager.controls.PlayerTwoCriticalHitCombination
+            ) &&
+            now - this.secondFighter.lastCriticalHitTime > this.criticalHitDelay
+        ) {
+            const damage = 2 * this.secondFighter.attack;
+            FightingManager.leftFighterIndicator.style.width = `${this.firstFighter.applyDamage(damage)}%`;
+            this.secondFighter.lastCriticalHitTime = now;
+        }
+    }
+
+    handleKeyUp(event) {
+        const { code } = event;
+        this.keysPressed.delete(code);
+
+        if (code === FightingManager.controls.PlayerOneAttack) this.firstFighter.inAttack = false;
+        if (code === FightingManager.controls.PlayerTwoAttack) this.secondFighter.inAttack = false;
+        if (code === FightingManager.controls.PlayerOneBlock) this.firstFighter.inDodge = false;
+        if (code === FightingManager.controls.PlayerTwoBlock) this.secondFighter.inDodge = false;
+    }
+
+    checkForWinner() {
+        if (this.firstFighter.health <= 0) {
+            this.endFight(this.secondFighter);
+        } else if (this.secondFighter.health <= 0) {
+            this.endFight(this.firstFighter);
+        }
+    }
+
+    endFight(winner) {
+        document.removeEventListener('keydown', this.runGame.bind(this));
+        document.removeEventListener('keyup', this.runGame.bind(this));
+        this.resolveFight(winner);
+    }
+
+    runGame(event) {
+        if (event.type === 'keyup') this.handleKeyUp(event);
+        if (event.type === 'keydown') this.handleKeyDown(event);
+        this.checkForWinner();
+    }
+}
+
+export default async function fight(firstFighter, secondFighter) {
+    const fightingManager = new FightingManager(firstFighter, secondFighter);
+    return fightingManager.fight();
 }

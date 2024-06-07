@@ -41,3 +41,24 @@ img {
   background: rgba(255, 255, 255, 0.7);
   visibility: hidden;
 }
+.user-button {
+  padding: 4px 24px;
+  position: absolute;
+  bottom: 0.75rem;
+  right: 1.75rem;
+  letter-spacing: 2px;
+  color: white;
+  font-size: 1.25rem;
+  font-weight: bold;
+  border: 2px solid black;
+  border-radius: 3rem;
+  background-color: black;
+  transition: all 0.5s;
+}
+.user-button:hover {
+  background-color: rgb(255, 0, 13);
+  color: rgb(0, 225, 255);
+}
+.user-button:active {
+  opacity: 0.5;
+}
